@@ -2,7 +2,7 @@
 
 ### A CobaltEssentials extension to provide generic name translation and chat-based context for spawnables on BeamMP Servers
 
-![Example of namedSpawnables](https://i.imgur.com/a8F9hjO.png)
+![Example of namedSpawnables](https://i.imgur.com/6qCnsEc.png)
 
 ## Installation:
 
