@@ -87,37 +87,74 @@ local vehNames =
 	--genericName = "fullName"
 }
 
---called whenever a player spawns a vehicle.
+--called whenever a player spawns a vehicle
 local function onVehicleSpawn(player, vehID,  data)
+	local matchCount = 0
 	for genericName,fullName in pairs(vehNames) do
-		if tostring(genericName) == data.name and data.name == "woodplanks" then
-			SendChatMessage(-1, player.name .. " spawned some " .. fullName)
-		elseif tostring(genericName) == data.name and data.name == "rocks" then
-			SendChatMessage(-1, player.name .. " spawned some " .. fullName)
-		elseif tostring(genericName) == data.name and string.match(string.sub(fullName,1,1), "[AEIOU]") then
-			SendChatMessage(-1, player.name .. " spawned an " .. fullName)
-		elseif tostring(genericName) == data.name then
-			SendChatMessage(-1, player.name .. " spawned a " .. fullName)
+		if tostring(genericName) == data.name then
+			matchCount = matchCount + 1
 		end
+	end
+	if matchCount == 1 then
+		for genericName,fullName in pairs(vehNames) do
+			if tostring(genericName) == data.name then
+				if data.name == "woodplanks" then
+					SendChatMessage(-1, player.name .. " spawned some " .. fullName)
+				elseif data.name == "rocks" then
+					SendChatMessage(-1, player.name .. " spawned some " .. fullName)
+				elseif string.match(string.sub(fullName,1,1), "[AEIOU]") then
+					SendChatMessage(-1, player.name .. " spawned an " .. fullName)
+				else
+					SendChatMessage(-1, player.name .. " spawned a " .. fullName)
+				end
+			end
+		end
+	else
+		SendChatMessage(-1, player.name .. " spawned an unrecognized vehicle: " .. data.name)
 	end
 end
 
---called whenever a player applies their vehicle edits.
+--called whenever a player applies their vehicle edits
 local function onVehicleEdited(player, vehID,  data)
+	local matchCount = 0
 	for genericName,fullName in pairs(vehNames) do
 		if tostring(genericName) == data.name then
-			SendChatMessage(-1, player.name .. " edited their " .. fullName)
+			matchCount = matchCount + 1
 		end
+	end
+	if matchCount == 1 then
+		for genericName,fullName in pairs(vehNames) do
+			if tostring(genericName) == data.name then
+				SendChatMessage(-1, player.name .. " edited their " .. fullName)
+			end
+		end
+	else
+		SendChatMessage(-1, player.name .. " edited their unrecognized vehicle: " .. data.name)
 	end
 end
 
 --called whenever a vehicle is deleted
 local function onVehicleDeleted(player, vehID,  source)
+	if player.vehicles[tonumber(vehID)] ~= nil then
+		local unrecognizedName = player.vehicles[tonumber(vehID)].name
+		local matchCount = 0
 		for genericName,fullName in pairs(vehNames) do
-			if tostring(genericName) == player.vehicles[tonumber(vehID)].name then
-				SendChatMessage(-1, player.name .. " deleted their " .. fullName)
+			if tostring(genericName) == unrecognizedName then
+				matchCount = matchCount + 1
 			end
 		end
+		if matchCount == 1 then
+			for genericName,fullName in pairs(vehNames) do
+				if tostring(genericName) == unrecognizedName then
+					SendChatMessage(-1, player.name .. " deleted their " .. fullName)
+				end
+			end
+		else
+			SendChatMessage(-1, player.name .. " deleted their unrecognized vehicle: " .. unrecognizedName)
+		end
+	else
+		SendChatMessage(-1, player.name .. " tried to spawn something, but was stopped!")
+	end
 end
 
 M.onInit = onInit
