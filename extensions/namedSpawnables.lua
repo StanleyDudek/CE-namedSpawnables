@@ -1,4 +1,5 @@
 local M = {}
+M.COBALT_VERSION = "1.5.3A"
 
 --called whenever the extension is loaded
 local function onInit()
@@ -85,9 +86,10 @@ local vehNames =
 	woodplanks = "Wood Planks",
 	--add additional definitions as a key value pair
 	--genericName = "fullName"
+	dscscarab = "DSC Scarab"
 }
 
---called whenever a player spawns a vehicle
+--called whenever a player spawns a vehicle.
 local function onVehicleSpawn(player, vehID,  data)
 	local matchCount = 0
 	for genericName,fullName in pairs(vehNames) do
@@ -111,10 +113,11 @@ local function onVehicleSpawn(player, vehID,  data)
 		end
 	else
 		SendChatMessage(-1, player.name .. " spawned an unrecognized vehicle: " .. data.name)
+		CElog(player.name .. " spawned an unrecognized vehicle: " .. data.name)
 	end
 end
 
---called whenever a player applies their vehicle edits
+--called whenever a player applies their vehicle edits.
 local function onVehicleEdited(player, vehID,  data)
 	local matchCount = 0
 	for genericName,fullName in pairs(vehNames) do
@@ -130,6 +133,7 @@ local function onVehicleEdited(player, vehID,  data)
 		end
 	else
 		SendChatMessage(-1, player.name .. " edited their unrecognized vehicle: " .. data.name)
+		CElog(player.name .. " edited their unrecognized vehicle: " .. data.name)
 	end
 end
 
@@ -147,13 +151,16 @@ local function onVehicleDeleted(player, vehID,  source)
 			for genericName,fullName in pairs(vehNames) do
 				if tostring(genericName) == unrecognizedName then
 					SendChatMessage(-1, player.name .. " deleted their " .. fullName)
+					CElog(player.name .. " deleted their " .. fullName)
 				end
 			end
 		else
 			SendChatMessage(-1, player.name .. " deleted their unrecognized vehicle: " .. unrecognizedName)
+			CElog(player.name .. " deleted their unrecognized vehicle: " .. unrecognizedName)
 		end
 	else
 		SendChatMessage(-1, player.name .. " tried to spawn something, but was stopped!")
+		CElog(player.name .. " tried to spawn something, but was stopped!")
 	end
 end
 
