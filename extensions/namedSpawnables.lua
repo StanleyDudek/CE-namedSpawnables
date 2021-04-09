@@ -1,5 +1,7 @@
 local M = {}
-M.COBALT_VERSION = "1.5.3A"
+M.COBALT_VERSION = "1.6.0"
+
+utils.setLogType("namedSpawnables",96)
 
 --called whenever the extension is loaded
 local function onInit()
@@ -42,6 +44,8 @@ local vehNames =
 	tsfb = "Small Flatbed Trailer",
 	tanker = "Randolph Tanker Trailer",
 	caravan = "Travel Trailer",
+	wendover = "Solidad Wendover",
+	unicycle = "Unicycle",
 	--stock props
 	flail = "Giant Flail",
 	ball = "Ball",
