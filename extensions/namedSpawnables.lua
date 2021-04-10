@@ -3,6 +3,9 @@ M.COBALT_VERSION = "1.6.0"
 
 utils.setLogType("namedSpawnables",96)
 
+local lastSpawn = {}
+local newSpawn = {}
+
 --called whenever the extension is loaded
 local function onInit()
 
@@ -104,6 +107,7 @@ local function onVehicleSpawn(player, vehID,  data)
 	if matchCount == 1 then
 		for genericName,fullName in pairs(vehNames) do
 			if tostring(genericName) == data.name then
+				lastSpawn[player.name] = tostring(genericName)
 				if data.name == "woodplanks" then
 					SendChatMessage(-1, player.name .. " spawned some " .. fullName)
 					CElog(player.name .. " spawned some " .. fullName, "namedSpawnables")
@@ -120,6 +124,7 @@ local function onVehicleSpawn(player, vehID,  data)
 			end
 		end
 	else
+		lastSpawn[player.name] = data.name
 		SendChatMessage(-1, player.name .. " spawned an unrecognized vehicle: " .. data.name)
 		CElog(player.name .. " spawned an unrecognized vehicle: " .. data.name, "namedSpawnables")
 	end
@@ -136,13 +141,38 @@ local function onVehicleEdited(player, vehID,  data)
 	if matchCount == 1 then
 		for genericName,fullName in pairs(vehNames) do
 			if tostring(genericName) == data.name then
-				SendChatMessage(-1, player.name .. " edited their " .. fullName)
-				CElog(player.name .. " edited their " .. fullName, "namedSpawnables")
+				newSpawn[player.name] = tostring(genericName)
+				if newSpawn[player.name] == lastSpawn[player.name] then
+					SendChatMessage(-1, player.name .. " edited their " .. fullName)
+					CElog(player.name .. " edited their " .. fullName, "namedSpawnables")
+				else
+					lastSpawn[player.name] = tostring(genericName)
+					if data.name == "woodplanks" then
+						SendChatMessage(-1, player.name .. " spawned some " .. fullName)
+						CElog(player.name .. " spawned some " .. fullName, "namedSpawnables")
+					elseif data.name == "rocks" then
+						SendChatMessage(-1, player.name .. " spawned some " .. fullName)
+						CElog(player.name .. " spawned some " .. fullName, "namedSpawnables")
+					elseif string.match(string.sub(fullName,1,1), "[AEIOU]") then
+						SendChatMessage(-1, player.name .. " spawned an " .. fullName)
+						CElog(player.name .. " spawned an " .. fullName, "namedSpawnables")
+					else
+						SendChatMessage(-1, player.name .. " spawned a " .. fullName)
+						CElog(player.name .. " spawned a " .. fullName, "namedSpawnables")
+					end
+				end
 			end
 		end
 	else
-		SendChatMessage(-1, player.name .. " edited their unrecognized vehicle: " .. data.name)
-		CElog(player.name .. " edited their unrecognized vehicle: " .. data.name, "namedSpawnables")
+		newSpawn[player.name] = data.name 
+		if newSpawn[player.name] == lastSpawn[player.name] then
+			SendChatMessage(-1, player.name .. " edited their unrecognized vehicle: " .. data.name)
+			CElog(player.name .. " edited their unrecognized vehicle: " .. data.name, "namedSpawnables")
+		else
+			lastSpawn[player.name] = data.name
+			SendChatMessage(-1, player.name .. " spawned an unrecognized vehicle: " .. data.name)
+			CElog(player.name .. " spawned an unrecognized vehicle: " .. data.name, "namedSpawnables")
+		end
 	end
 end
 
