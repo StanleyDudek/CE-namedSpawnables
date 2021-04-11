@@ -91,6 +91,7 @@ local vehNames =
 	testroller = "Wheel Roller",
 	woodcrate = "Wood Crate",
 	woodplanks = "Wood Planks",
+	mattress = "Mattress",
 	--add additional definitions as a key value pair
 	--genericName = "fullName"
 	dscscarab = "DSC Scarab"
