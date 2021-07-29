@@ -1,86 +1,16 @@
---namedSpawnables (SERVER)
+local M = {}
+M.COBALT_VERSION = "1.6.0"
+
+utils.setLogType("namedSpawnables",96)
 
 --Configure
 local showOnVehicleSpawn = true
 local showOnVehicleEdited = true
 local showOnVehicleDeleted = true
 
-pluginName = debug.getinfo(1).source:sub(2)
-local s, e
-resources = debug.getinfo(1).source:sub(2)
-local s, e = resources:find("\\")
-resources = resources:sub(0,e-1)
-local s, e = resources:find("Server")
-resources = resources:sub(1,s-2)
-s, e = pluginName:find("\\")
-pluginName = pluginName:sub(s+1)
-s, e = pluginName:find("\\")
-pluginName = pluginName:sub(1,s-1)
-package.path = package.path .. ";;" .. resources .. "/Server/" .. pluginName .. "/?.lua;;".. resources .. "/Server/" .. pluginName .. "/lua/?.lua"
-
-json = require("json")
-toml = require("toml")
-
-function onInit()
-	print("[namedSpawnables] ========== namedSpawnables initializing =========")
-	RegisterEvent("onPlayerConnecting","onPlayerConnecting")
-	RegisterEvent("onPlayerDisconnect","onPlayerDisconnect")
-	RegisterEvent("onVehicleSpawn","onVehicleSpawn")
-	RegisterEvent("onVehicleEdited","onVehicleEdited")
-	RegisterEvent("onVehicleDeleted","onVehicleDeleted")
-	print("[namedSpawnables] ========== namedSpawnables Initialized ==========")
+local function onInit()
+	CElog("namedSpawnables initialized","namedSpawnables")
 end
-
-function readCfg(path)
-	local tomlFile, error = io.open(path, 'r')
-	if error then return nil, error end
-	local tomlText = tomlFile:read("*a")
-	tomlFile:close()
-	local cfg = toml.parse(tomlText)
-	if cfg.General and cfg.General.Name then -- remove special chars from server name
-		cfg.General.rawName = cfg.General.Name
-		cfg.Name = cfg.General.Name
-		local s,e = cfg.Name:find('%^')
-		while s ~= nil do
-			cfg.Name = cfg.Name:sub(0,s-1) .. cfg.Name:sub(s+2)
-			s,e = cfg.Name:find('%^')
-		end
-	end
-	return cfg
-end
-
-local beamMPconfig = {}
-local currentcfg = {}
-local beamMPcfg = readCfg("ServerConfig.toml").General
-local beamMPconfigMetatable = {
-	__index = function(table, key)
-		return currentcfg[key] or beamMPcfg[key]
-	end,
-	__newindex = function(table, key, value)
-		if key == "Debug" then
-			Set(0, value)
-		elseif key == "Private" then
-			Set(1, value)
-		elseif key == "MaxCars" then
-			Set(2, value)
-		elseif key == "MaxPlayers" then
-			Set(3, value)
-		elseif key == "Map" then
-			Set(4, value)
-		elseif key == "Name" then 
-			Set(5, value)
-		elseif key == "Description" then
-			Set(6, value)
-		else
-			return nil
-		end
-		currentcfg[key] = value
-	end
-}
-
-setmetatable(beamMPconfig, beamMPconfigMetatable)
-
-local players = {}
 
 local paths = {
 	--Stock Vehicles
@@ -1731,44 +1661,6 @@ local makes = {
 	--genericName = "fullName"
 }
 
-function parseVehData(data)
-	local s, e = data:find('%{')
-	data = data:sub(s)
-	local sucessful, tempData = pcall(json.parse, data)
-	if not sucessful then
-		return false
-	end
-	data = tempData
-	data.serverVID = vehID
-	data.clientVID = data.VID
-	data.name = data.jbm
-	data.cfg = data.vcf
-	if data[4] ~= nil then
-		local sucessful, tempData = pcall(json.parse, data[4])
-		if not sucessful then
-			return false
-		end
-		data.info = tempData 
-	end
-	return data
-end
-
-function store(ID, vehID, data, blocked)
-	players[ID][vehID] = {}
-	players[ID][vehID].vehData = data
-	if players[ID][vehID].vehData == nil then
-	else
-		players[ID][vehID].vehName = data.name
-		players[ID][vehID].vehCfg = data.cfg.partConfigFilename
-	end
-	players[ID].vehBlocked = blocked
-end
-
-function release(ID, vehID)
-	players[ID].vehBlocked = false
-	players[ID][vehID] = nil
-end
-
 function getVehCfg(data)
 	local configPath = data.cfg.partConfigFilename
 	local vehCfg
@@ -1785,172 +1677,118 @@ function getVehCfg(data)
 	return vehCfg
 end
 
-function isRecognized(playerName, data, fullName, vehCfg, blocked)
+function isRecognized(player, data, fullName, vehCfg)
 	if showOnVehicleSpawn then
 		local namedSpawnable = fullName .. " " .. vehCfg
-		if not blocked then
-			if data.name == "woodplanks" or data.name == "rocks" then
-				TriggerClientEvent(-1, "namedMessage", playerName .. " spawned some " .. namedSpawnable)
-				SendChatMessage(-1, playerName .. " spawned some " .. namedSpawnable)
-				print("[namedSpawnables] " .. playerName .. " spawned some " .. namedSpawnable)
-			elseif string.match(string.sub(fullName,1,1), "[AEIOU]") then
-				TriggerClientEvent(-1, "namedMessage", playerName .. " spawned an " .. namedSpawnable)
-				SendChatMessage(-1, playerName .. " spawned an " .. namedSpawnable)
-				print("[namedSpawnables] " .. playerName .. " spawned an " .. namedSpawnable)
-			else
-				TriggerClientEvent(-1, "namedMessage", playerName .. " spawned a " .. namedSpawnable)
-				SendChatMessage(-1, playerName .. " spawned a " .. namedSpawnable)
-				print("[namedSpawnables] " .. playerName .. " spawned a " .. namedSpawnable)
-			end
+		if data.name == "woodplanks" or data.name == "rocks" then
+			TriggerClientEvent(-1, "namedMessage", player.name .. " spawned some " .. namedSpawnable)
+			SendChatMessage(-1, player.name .. " spawned some " .. namedSpawnable)
+			CElog(player.name .. " spawned some " .. namedSpawnable, "namedSpawnables")
+		elseif string.match(string.sub(fullName,1,1), "[AEIOU]") then
+			TriggerClientEvent(-1, "namedMessage", player.name .. " spawned an " .. namedSpawnable)
+			SendChatMessage(-1, player.name .. " spawned an " .. namedSpawnable)
+			CElog(player.name .. " spawned an " .. namedSpawnable, "namedSpawnables")
 		else
-			TriggerClientEvent(-1, "namedMessage", playerName .. "'s " .. namedSpawnable .. " was blocked")
-			SendChatMessage(-1, playerName .. "'s " .. namedSpawnable .. " was blocked")
-			print("[namedSpawnables] " .. playerName .. "'s " .. namedSpawnable .. " was blocked")
+			TriggerClientEvent(-1, "namedMessage", player.name .. " spawned a " .. namedSpawnable)
+			SendChatMessage(-1, player.name .. " spawned a " .. namedSpawnable)
+			CElog(player.name .. " spawned a " .. namedSpawnable, "namedSpawnables")
 		end
 	end
 end
 
-function isUnrecognized(playerName, data, blocked)
+function isUnrecognized(player, data)
 	if showOnVehicleSpawn then
-		if not blocked then
-			TriggerClientEvent(-1, "namedMessage", playerName .. " spawned an unrecognized vehicle: '" .. data.name .. "'")
-			SendChatMessage(-1, playerName .. " spawned an unrecognized vehicle: '" .. data.name .. "'")
-			print("[namedSpawnables] " .. playerName .. " spawned an unrecognized vehicle: '" .. data.name .. "'")
-		else
-			TriggerClientEvent(-1, "namedMessage", playerName .. "'s unrecognized vehicle: '" .. data.name .. "' was blocked")
-			SendChatMessage(-1, playerName .. "'s unrecognized vehicle: '" .. data.name .. "' was blocked")
-			print("[namedSpawnables] " .. playerName .. "'s unrecognized vehicle: '" .. data.name .. "' was blocked")
-		end
+		TriggerClientEvent(-1, "namedMessage", player.name .. " spawned an unrecognized vehicle: '" .. data.name .. "'")
+		SendChatMessage(-1, player.name .. " spawned an unrecognized vehicle: '" .. data.name .. "'")
+		CElog(player.name .. " spawned an unrecognized vehicle: '" .. data.name .. "'", "namedSpawnables")
 	end
 end
 
-function onPlayerConnecting(ID)
-	players[ID] = {}
-	players[ID].name = GetPlayerName(ID)
-	players[ID].vehBlocked = false
-end
-
-function onPlayerDisconnect(ID)
-	players[ID] = nil
-end
-
-function onVehicleSpawn(ID, vehID, data)
-	local playerName = players[ID].name
-	local data = parseVehData(data)
+local function onVehicleSpawn(player, vehID, data)
 	local fullName = makes[data.name]
 	local vehCfg = getVehCfg(data)
-	if players[ID].vehBlocked == false then
-		store(ID, vehID, data, false)
-		players[ID][vehID].vehCount = 1
-		local vehList = GetPlayerVehicles(ID)
-		if vehList then
-			for k,v in pairs(vehList) do
-				if k then
-					players[ID][vehID].vehCount = players[ID][vehID].vehCount + 1
-				end
-			end
-		end
-		if players[ID][vehID].vehCount <= beamMPconfig.MaxCars then
-			if fullName and vehCfg then
-				isRecognized(playerName, data, fullName, vehCfg, false)
-			elseif fullName and not vehCfg then
-				vehCfg = "[Custom Configuration]"
-				isRecognized(playerName, data, fullName, vehCfg, false)
-			else
-				isUnrecognized(playerName, data, false)
-			end
-		else
-			if fullName and vehCfg then
-				isRecognized(playerName, data, fullName, vehCfg, true)
-			elseif fullName and not vehCfg then
-				vehCfg = "[Custom Configuration]"
-				isRecognized(playerName, data, fullName, vehCfg, true)
-			else
-				isUnrecognized(playerName, data, true)
-			end
-		end
+	if fullName and vehCfg then
+		isRecognized(player, data, fullName, vehCfg)
+	elseif fullName and not vehCfg then
+		vehCfg = "[Custom Configuration]"
+		isRecognized(player, data, fullName, vehCfg)
 	else
-		release(ID, vehID)
+		isUnrecognized(player, data)
 	end
 end
 
-function onVehicleEdited(ID, vehID, data)
-	local playerName = players[ID].name
-	local data = parseVehData(data)
+local function onVehicleEdited(player, vehID, data)
 	local fullName = makes[data.name]
 	local vehCfg = getVehCfg(data)
-	if players[ID].vehBlocked == false then
-		store(ID, vehID, data, false)
-		if fullName and vehCfg then
-			local namedSpawnable = fullName .. " " .. vehCfg
-			if players[ID][vehID].vehCfg == data.cfg.partConfigFilename then
-				if showOnVehicleEdited then
-					TriggerClientEvent(-1, "namedMessage", playerName .. " edited their " .. namedSpawnable)
-					SendChatMessage(-1, playerName .. " edited their " .. namedSpawnable)
-					print("[namedSpawnables] " .. playerName .. " edited their " .. namedSpawnable)
-				end
-			else
-				isRecognized(playerName, data, fullName, vehCfg)
-			end
-		elseif fullName and not vehCfg then
-			local namedSpawnable = fullName .. " [Custom Configuration]"
-			if players[ID][vehID].vehName == data.name then
-				if showOnVehicleEdited then
-					TriggerClientEvent(-1, "namedMessage", playerName .. " edited their " .. namedSpawnable)
-					SendChatMessage(-1, playerName .. " edited their " .. namedSpawnable)
-					print("[namedSpawnables] " .. playerName .. " edited their " .. namedSpawnable)
-				end
-			else
-				vehCfg = " [Custom Configuration]"
-				isRecognized(playerName, data, fullName, vehCfg)
+	if fullName and vehCfg then
+		local namedSpawnable = fullName .. " " .. vehCfg
+		if player.vehicles[tonumber(vehID)].cfg.partConfigFilename == data.cfg.partConfigFilename then
+			if showOnVehicleEdited then
+				TriggerClientEvent(-1, "namedMessage", player.name .. " edited their " .. namedSpawnable)
+				SendChatMessage(-1, player.name .. " edited their " .. namedSpawnable)
+				CElog(player.name .. " edited their " .. namedSpawnable, "namedSpawnables")
 			end
 		else
-			if players[ID][vehID].vehName == data.name then
-				if showOnVehicleEdited then
-					TriggerClientEvent(-1, "namedMessage", playerName .. " edited their unrecognized vehicle: '" .. data.name .. "'")
-					SendChatMessage(-1, playerName .. " edited their unrecognized vehicle: '" .. data.name .. "'")
-					print("[namedSpawnables] " .. playerName .. " edited their unrecognized vehicle: '" .. data.name .. "'")
-				end
-			else
-				isUnrecognized(playerName, data)
+			isRecognized(player, data, fullName, vehCfg)
+		end
+	elseif fullName and not vehCfg then
+		local namedSpawnable = fullName .. " [Custom Configuration]"
+		if player.vehicles[tonumber(vehID)].name == data.name then
+			if showOnVehicleEdited then
+				TriggerClientEvent(-1, "namedMessage", player.name .. " edited their " .. namedSpawnable)
+				SendChatMessage(-1, player.name .. " edited their " .. namedSpawnable)
+				CElog(player.name .. " edited their " .. namedSpawnable, "namedSpawnables")
 			end
+		else
+			vehCfg = " [Custom Configuration]"
+			isRecognized(player, data, fullName, vehCfg)
 		end
 	else
-		release(ID, vehID)
+		if player.vehicles[tonumber(vehID)].name == data.name then
+			if showOnVehicleEdited then
+				TriggerClientEvent(-1, "namedMessage", player.name .. " edited their unrecognized vehicle: '" .. data.name .. "'")
+				SendChatMessage(-1, player.name .. " edited their unrecognized vehicle: '" .. data.name .. "'")
+				CElog(player.name .. " edited their unrecognized vehicle: '" .. data.name .. "'", "namedSpawnables")
+			end
+		else
+			isUnrecognized(player, data)
+		end
 	end
 end
 
-function onVehicleDeleted(ID, vehID)
+local function onVehicleDeleted(player, vehID, source)
 	if showOnVehicleDeleted then
-		local ID = tonumber(ID)
-		local vehID = tonumber(vehID)
-		local playerName = players[ID].name
-		if players[ID][vehID] then
-			local data = players[ID][vehID].vehData
+		if player.vehicles[tonumber(vehID)] then
+			local data = player.vehicles[tonumber(vehID)]
 			local genericName = data.name
-			local fullName = makes[data.name]
+			local fullName = makes[genericName]
 			local vehCfg = getVehCfg(data)
 			if fullName and vehCfg then
 				local namedSpawnable = fullName .. " " .. vehCfg
-				TriggerClientEvent(-1, "namedMessage", playerName .. " deleted their " .. namedSpawnable)
-				SendChatMessage(-1, playerName .. " deleted their " .. namedSpawnable)
-				print("[namedSpawnables] " .. playerName .. " deleted their " .. namedSpawnable)
+				TriggerClientEvent(-1, "namedMessage", player.name .. " deleted their " .. namedSpawnable)
+				SendChatMessage(-1, player.name .. " deleted their " .. namedSpawnable)
+				CElog(player.name .. " deleted their " .. namedSpawnable, "namedSpawnables")
 			elseif fullName and not vehCfg then
 				local namedSpawnable = fullName .. " [Custom Configuration]"
-				TriggerClientEvent(-1, "namedMessage", playerName .. " deleted their " .. namedSpawnable)
-				SendChatMessage(-1, playerName .. " deleted their " .. namedSpawnable)
-				print("[namedSpawnables] " .. playerName .. " deleted their " .. namedSpawnable)
+				SendChatMessage(-1, player.name .. " deleted their " .. namedSpawnable)
+				CElog(player.name .. " deleted their " .. namedSpawnable, "namedSpawnables")
 			else
-				TriggerClientEvent(-1, "namedMessage", playerName .. " deleted their unrecognized vehicle: " .. genericName)
-				SendChatMessage(-1, playerName .. " deleted their unrecognized vehicle: " .. genericName)
-				print("[namedSpawnables] " .. playerName .. " deleted their unrecognized vehicle: " .. genericName)
+				TriggerClientEvent(-1, "namedMessage", player.name .. " deleted their unrecognized vehicle: '" .. genericName .. "'")
+				SendChatMessage(-1, player.name .. " deleted their unrecognized vehicle: '" .. genericName .. "'")
+				CElog(player.name .. " deleted their unrecognized vehicle: '" .. genericName .. "'", "namedSpawnables")
 			end
-			release(ID, vehID)
 		else
-			store(ID, vehID, nil, true)
-			TriggerClientEvent(-1, "namedMessage", playerName .. "'s vehicle spawn was blocked")
-			SendChatMessage(-1, playerName .. "'s vehicle spawn was blocked")
-			print("[namedSpawnables] " .. playerName .. "'s vehicle spawn was blocked")
+			TriggerClientEvent(-1, "namedMessage", player.name .. "'s vehicle spawn was blocked")
+			SendChatMessage(-1, player.name .. "'s vehicle spawn was blocked")
+			CElog(player.name .. "'s vehicle spawn was blocked", "namedSpawnables")
 		end
 	end
 end
+
+M.onInit = onInit
+
+M.onVehicleSpawn = onVehicleSpawn
+M.onVehicleEdited = onVehicleEdited
+M.onVehicleDeleted = onVehicleDeleted
+
+return M
